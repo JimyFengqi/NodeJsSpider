@@ -1,3 +1,4 @@
+// 获取酷狗网页上，单个歌手的歌曲list，一般为30首左右
 
 var request = require('request');
 var cheerio = require('cheerio');
@@ -64,48 +65,32 @@ function acquireData(data) {
 		//console.log("hash[0] : "+hash[0]); 
 		filenames.push(hash[0]); 
 	} 
-	
 } 
 
 function acquireMusic(data,Num){
 	var info=JSON.parse(data);
 	var imgsrc=info.data.play_url; 
 	var lyricInfo=info.data.lyrics;
-	//var filename = parseUrlForFileName(imgsrc);
 	var filename=filenames[Num]; 
 	console.log("current num is "+Num+"   current song is:"+filename);
-	/*
-	//console.log("current num is "+Num+"current info.data.audio_name is:"+info.data.audio_name);
-	//console.log("current num is "+Num+"current info.data.author_name is:"+info.data.author_name);
-	
-	for (let item in info ){
-		var inter = info[item];
-		console.log(inter);	
-	}*/
 	
 	downloadLyric(lyricInfo,filename,function(){
 		console.log("current num is["+Num+"]  ---- :["+filename+"]'s  lyric has donwload done");
 	});
 	
-	downloadImg(imgsrc,filename,function(){ 
+	downloadSong(imgsrc,filename,function(){ 
 		console.log("current num is ["+Num+"] ----  :["+filename + '] 的歌曲写入本地已经完成 ');
 	}); 
 	
 }
 
-function parseUrlForFileName(address) { 
-	var filename = path.basename(address); 
-	return filename; 
-}
-
 var downloadLyric=function(lyricInfo,filename,callback) {
-	out=fs.createWriteStream(songsFolderName+filename+'.lyc');
+	out=fs.createWriteStream(songsFolderName+filename+'.lrc');
 	out.write(lyricInfo);
 	out.end("close",callback);
 }
 
-
-var downloadImg = function(uri, filename, callback){
+var downloadSong = function(uri, filename, callback){
 	request.head(uri, function(err, res, body){ 
 		if (err) { 
 			console.log('err: '+ err); 
