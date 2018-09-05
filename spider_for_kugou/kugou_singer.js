@@ -6,7 +6,7 @@ var cheerio = require('cheerio');
 var path = require('path'); 
 var fs = require('fs');
 
-var out = fs.createWriteStream('./test1.txt');
+var out = fs.createWriteStream('./singerUrllist.txt');
 
 var listUrl=new Array(); 
 var filenames=new Array();
