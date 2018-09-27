@@ -95,9 +95,9 @@ for(let j = 0; j<5;j++){
 
 
 
-requrl='http://www.kugou.com/yy/singer/home/3060.html';   //薛之谦
-requrl='http://www.kugou.com/singer/3520.html';  // 周杰伦
-begin_url = 'http://www.kugou.com/singer/722869.html'; //毛不易
+//requrl='http://www.kugou.com/yy/singer/home/3060.html';   //薛之谦
+//begin_url='http://www.kugou.com/singer/3520.html';  // 周杰伦
+requrl = 'http://www.kugou.com/singer/722869.html'; //毛不易
 
 request(begin_url, function (error, begin_url_response, begin_url_body) {
 	if (!error && begin_url_response.statusCode == 200) {
@@ -118,9 +118,6 @@ request(begin_url, function (error, begin_url_response, begin_url_body) {
 		});   
 	}	
 });
-
-
-
 
 function acquireData(data) { 
 	var $ = cheerio.load(data);
@@ -203,7 +200,7 @@ function acquireMusic(data,Num,songName,singerName){
 		console.log("current num is["+Num+"]  ---- :["+songName+"]'s  lyric has donwload done");
 	});
 	
-	downloadimg(song_download_url,songName,singerName,function(){ 
+	downloadSong(song_download_url,songName,singerName,function(){ 
 		console.log("current num is ["+Num+"] ----  :["+songName + '] 的歌曲写入本地已经完成 ');
 	}); 
 	
@@ -215,19 +212,10 @@ function parseUrlForFileName(address) {
 }
 
 var downloadLyric=function(lyricInfo,filename,singerName,callback) {
-	out=fs.createWriteStream(singerName+filename+'.lyc');
+	out=fs.createWriteStream(singerName+filename+'.lrc');
 	out.write(lyricInfo);
 	out.end("close",callback);
 }
-
-var downloadimg = function(uri, filename,singerName,callback){
-	console.log(uri)
-	
-
-	console.log('正在本地位置 : '+ singerName+'  写入文件  --------【'+filename+'.mp3】'); 
-	request(uri).pipe(fs.createWriteStream(singerName+filename+'.mp3')).on('close', callback); //调用request的管道来下载到 images文件夹下 
-
-};
 
 var downloadSong = function(uri, filename,singerName,callback){
 	console.log(uri)

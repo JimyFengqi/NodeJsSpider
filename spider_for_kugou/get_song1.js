@@ -200,7 +200,7 @@ function parseUrlForFileName(address) {
 }
 
 var downloadLyric=function(lyricInfo,filename,singerName,callback) {
-	out=fs.createWriteStream(singerName+filename+'.lyc');
+	out=fs.createWriteStream(singerName+filename+'.lrc');
 	out.write(lyricInfo);
 	out.end("close",callback);
 }

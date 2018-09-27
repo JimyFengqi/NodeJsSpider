@@ -967,107 +967,7 @@ MongoClient.connect(DB_CONN_STR, {useNewUrlParser:true},function(err, client) {
     //执行插入数据操作，调用自定义方法
 	var collection=client.db('kugou')
 	//获得指定的集合 
-	var db = collection.collection('kugou');
-var data=[ { singername: 'Alan Walker',
-    singerurl: 'http://www.kugou.com/yy/singer/home/178240.html' },
-  { singername: '阿杜',
-    singerurl: 'http://www.kugou.com/yy/singer/home/2.html' },
-  { singername: '艾辰',
-    singerurl: 'http://www.kugou.com/yy/singer/home/628633.html' },
-  { singername: '艾热',
-    singerurl: 'http://www.kugou.com/yy/singer/home/180348.html' },
-  { singername: '阿里郎',
-    singerurl: 'http://www.kugou.com/yy/singer/home/7151.html' },
-  { singername: '安东阳',
-    singerurl: 'http://www.kugou.com/yy/singer/home/82.html' },
-  { singername: '安与骑兵',
-    singerurl: 'http://www.kugou.com/yy/singer/home/84588.html' },
-  { singername: 'A-Lin',
-    singerurl: 'http://www.kugou.com/yy/singer/home/3956.html' },
-  { singername: '阿宝',
-    singerurl: 'http://www.kugou.com/yy/singer/home/5.html' },
-  { singername: 'Avril Lavigne',
-    singerurl: 'http://www.kugou.com/yy/singer/home/36363.html' },
-  { singername: '阿涵',
-    singerurl: 'http://www.kugou.com/yy/singer/home/198976.html' },
-  { singername: 'Adele',
-    singerurl: 'http://www.kugou.com/yy/singer/home/36365.html' },
-  { singername: '阿桑',
-    singerurl: 'http://www.kugou.com/yy/singer/home/3954.html' },
-  { singername: '阿悄',
-    singerurl: 'http://www.kugou.com/yy/singer/home/4005.html' },
-  { singername: 'Angelababy',
-    singerurl: 'http://www.kugou.com/yy/singer/home/4003.html' },
-  { singername: '阿细',
-    singerurl: 'http://www.kugou.com/yy/singer/home/182316.html' },
-  { singername: '艾福杰尼',
-    singerurl: 'http://www.kugou.com/yy/singer/home/180345.html' },
-  { singername: 'AOA',
-    singerurl: 'http://www.kugou.com/yy/singer/home/85137.html' },
-  { singername: 'Akon',
-    singerurl: 'http://www.kugou.com/yy/singer/home/19819.html' },
-  { singername: 'Apink',
-    singerurl: 'http://www.kugou.com/yy/singer/home/84465.html' },
-  { singername: '阿鲁阿卓',
-    singerurl: 'http://www.kugou.com/yy/singer/home/3993.html' },
-  { singername: '艾歌',
-    singerurl: 'http://www.kugou.com/yy/singer/home/4014.html' },
-  { singername: 'AGA',
-    singerurl: 'http://www.kugou.com/yy/singer/home/88770.html' },
-  { singername: '阿木',
-    singerurl: 'http://www.kugou.com/yy/singer/home/9.html' },
-  { singername: '阿牛',
-    singerurl: 'http://www.kugou.com/yy/singer/home/3.html' },
-  { singername: '安苏羽',
-    singerurl: 'http://www.kugou.com/yy/singer/home/87264.html' },
-  { singername: '阿冷',
-    singerurl: 'http://www.kugou.com/yy/singer/home/643262.html' },
-  { singername: 'Avicii',
-    singerurl: 'http://www.kugou.com/yy/singer/home/86133.html' },
-  { singername: '阿肆',
-    singerurl: 'http://www.kugou.com/yy/singer/home/91599.html' },
-  { singername: 'A',
-    singerurl: 'http://www.kugou.com/yy/singer/home/171085.html' },
-  { singername: '阿权',
-    singerurl: 'http://www.kugou.com/yy/singer/home/87523.html' },
-  { singername: '奥杰阿格',
-    singerurl: 'http://www.kugou.com/yy/singer/home/92246.html' },
-  { singername: '阿幼朵',
-    singerurl: 'http://www.kugou.com/yy/singer/home/3973.html' },
-  { singername: '爱乐团王超',
-    singerurl: 'http://www.kugou.com/yy/singer/home/7144.html' },
-  { singername: '阿光',
-    singerurl: 'http://www.kugou.com/yy/singer/home/194110.html' },
-  { singername: 'Ariana Grande',
-    singerurl: 'http://www.kugou.com/yy/singer/home/90471.html' },
-  { singername: 'ANU',
-    singerurl: 'http://www.kugou.com/yy/singer/home/551201.html' },
-  { singername: '安七炫',
-    singerurl: 'http://www.kugou.com/yy/singer/home/16272.html' },
-  { singername: '阿兰',
-    singerurl: 'http://www.kugou.com/yy/singer/home/3955.html' },
-  { singername: '安室奈美恵',
-    singerurl: 'http://www.kugou.com/yy/singer/home/11140.html' },
-  { singername: '阿夏',
-    singerurl: 'http://www.kugou.com/yy/singer/home/88176.html' },
-  { singername: '安可儿',
-    singerurl: 'http://www.kugou.com/yy/singer/home/175312.html' },
-  { singername: 'Aimer',
-    singerurl: 'http://www.kugou.com/yy/singer/home/11301.html' },
-  { singername: 'A.N.JELL',
-    singerurl: 'http://www.kugou.com/yy/singer/home/154587.html' },
-  { singername: '安悦溪',
-    singerurl: 'http://www.kugou.com/yy/singer/home/198652.html' },
-  { singername: '阿泱',
-    singerurl: 'http://www.kugou.com/yy/singer/home/642965.html' },
-  { singername: 'AKB48',
-    singerurl: 'http://www.kugou.com/yy/singer/home/13100.html' },
-  { singername: '阿吉仔',
-    singerurl: 'http://www.kugou.com/yy/singer/home/18.html' },
-  { singername: '暗杠',
-    singerurl: 'http://www.kugou.com/yy/singer/home/91849.html' },
-  { singername: '阿四龙组合',
-    singerurl: 'http://www.kugou.com/yy/singer/home/91824.html' } ];
+	var db = collection.collection('歌手列表');
 	
 	var leni=0
 	var singerid=0
@@ -1125,12 +1025,14 @@ var data=[ { singername: 'Alan Walker',
 			
 			console.log('singerList length only show once time ====='+singerList.length)
 
-			
-			insertData(db,singerList,function(result) {
+			if(singerList.length >0){
+				insertData(db,singerList,function(result) {
 					//显示结果
 				//console.log(result);
 		 
-			});
+				});
+			}
+
 			
 			singerList=[]
 			console.log('current leni = '+leni)
