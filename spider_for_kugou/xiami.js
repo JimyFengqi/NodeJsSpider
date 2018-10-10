@@ -13,7 +13,126 @@ var headers={
         'User-Agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12) AppleWebKit/602.1.50 (KHTML, like Gecko) Version/10.0 Safari/602.1.50'
     };
 
-getCollectsSongUrl()	
+getRanklistSongUrlInfo()
+//searchSingertest()
+function searchSingertest(){
+		singer='林俊杰'
+		const singerurl = 'http://www.xiami.com/search?key='+encodeURIComponent(singer)+'&pos=1';
+		var albumarr = [];
+		request(singerurl,function(req,res,err){
+			////if(err){
+			////    console.log('something wrong');
+			////
+			////}else{
+				if(res.body){
+					var $ = cheerio.load(res.body,{decodeEntities:false});
+					var albumslist = $('div.result_main ul.clearfix').eq(0);
+					console.log(albumslist)
+					var albums = albumslist.find("li[data-needpay]");
+					var picurl,albumname,songsurl;
+					for(var i in albums){
+						var album = albums.eq(i);
+						picurl = 'http:'+album.find('a.CDcover100 img').attr('src');
+						albumname = album.find('p.name a.song').attr('title');
+						songsurl = 'https:'+album.find('p.name a.song').attr('href');
+						if(album.data('needpay')){
+
+							console.log(albumname+'需要付费');
+						}else{
+							if(album.data('needpay')=='0'){
+								var albumobj = {
+									singer:singer,
+									picurl:picurl,
+									albumname:albumname,
+									songsurl:songsurl
+								};
+								//console.log(albumobj)
+								albumarr.push(JSON.stringify(albumobj));
+							}
+						}
+					}
+			
+				}
+			//}
+		});
+}
+
+
+function getRanklistSongUrlInfo() {	
+	var rankurl='https://www.xiami.com/chart/data?c=103&type=1&page=1&limit=100&_='  // type 后面的数字代表rankType={'0':' 全部排行','1':'华语','2':'欧美' ,'3':'日本','4':'韩国'} 
+	var now = new Date();
+	var rankfolder= './'+'排行榜'+'/'
+	rankur=rankurl+now.valueOf();
+	fs.access(rankfolder, function (err){
+			if(err){
+				console.log('rankfolder=[%s] 不存在，需要创建',rankfolder);
+				fs.mkdir(rankfolder,function(err){
+					console.log('rankfolder=[%s]创建成功',rankfolder)
+				});
+			}else{
+				console.log('rankfolder=[%s] 已经存在，不需要创建',rankfolder)	
+			}
+	});
+
+    request(rankurl, function (req, res, err) {
+        if (res) {
+			var $ = cheerio.load(res.body);
+            var songlists = $('div.song div.info');  
+			var checkedlist= $('input');   //真正的songid 在input属性里面
+			var bagpipe = new Bagpipe(songlists.length);
+            var ranksongs = [];
+			console.log('songlists.length = [%d]',songlists.length);
+            for (var i in songlists) {
+                var song = songlists.eq(i);
+				var songid=checkedlist.eq(i).attr('value');
+                if(song.text()) {
+                    var songname =song.find('p strong>a').text();
+
+					songname=songname.trim().replace(' ','');
+					songname=songname.trim().replace('?','_');
+					songname=songname.trim().replace('! ','');
+					songname=songname.trim().replace(':','_');
+					songname=songname.trim().replace(':','_');
+					songname=songname.trim().replace('\\','_');
+					songname=songname.trim().replace('\\','_');
+					songname=songname.trim().replace('(','_');
+					songname=songname.trim().replace(')','_');
+					songname=songname.trim().replace('\/','_');
+					songname=songname.trim().replace('\/','_');
+                    var songplayurl = 'https://www.xiami.com/song/'+song.find('p strong>a').attr('href').slice(6);
+                    var singer = song.find('p>a').attr('title');
+					if(!singer){
+						singer=song.find('p>a').text().slice(2)
+					}
+					var songurl = getSongUrl(songid);
+					var rank= +i+1    //字符串转为整形数字，可以在字符串前面加上一个加号， 比如： '12'  -> +'12'
+					//console.log('rank=[%d],songname=[%s],songplayurl=[%s],singer=[%s],songid=[%s],songurl=[%s]',rank,songname,songplayurl,singer,songid,songurl);
+                    var songobj = {
+						rank:rank,
+                        songname:songname,
+                        songplayurl:songplayurl,
+						songid:songid,
+                        singer:singer,
+						songurl:songurl
+                    };
+                    songobj = JSON.stringify(songobj);
+					//console.log(songobj)
+                    ranksongs.push(songobj);
+					bagpipe.push(download,songname,songurl,singer,rankfolder,rank);
+                }
+            }
+			console.log('ranksongs.length = [%d]',ranksongs.length);
+            client.sadd('ranksongs',ranksongs,function(err,val){
+                console.log(val);
+				client.close()
+            });
+			
+        }
+
+    });
+};
+
+
 function getCollectsSongUrl() {
     var rankurl = 'http://www.xiami.com/index/collect?_=';
     var now = new Date();
@@ -25,21 +144,23 @@ function getCollectsSongUrl() {
 	console.log('rankurl = [%s]',rankurl),
     request(options, function (req, res, err) {
         if (res.body) {
-            var body = JSON.parse(res.body).data.charts;
-            var $ = cheerio.load(body, {decodeEntities: false});
+            var body = JSON.parse(res.body).data.charts;   //截取一部分的json数据
+            var $ = cheerio.load(body, {decodeEntities: false});   //将json数据重新加载
             var songlists = $('div.content div.info');
             var songs = [];
 
             for (var i in songlists) {
                 var song = songlists.eq(i);
                 if (song.text()) {
-                    var name = song.find('p strong>a').text();
+                    var songname = song.find('p strong>a').text();
                     var songid = song.find('p strong>a').attr('href').slice(6);
                     var singer = song.find('p.singer a').attr('title');
+					var songurl = getSongUrl(songid);
                     var songobj = {
-                        name:name,
+                        songname:songname,
                         id:songid,
-                        singer:singer
+                        singer:singer,
+						songurl:songurl
                     };
                     songobj = JSON.stringify(songobj);
                     songs.push(songobj);
@@ -50,7 +171,7 @@ function getCollectsSongUrl() {
             client.sadd('songs',songs,function(err,val){
                 console.log(val);
             });
-
+			
         }
 
     });
@@ -118,6 +239,7 @@ function download(songname,requesturl,singer,dir,albumname) {
             if (res) {
                 var $ = cheerio.load(res.body, {xmlMode: true});
                 var urlstr = $('location').text();
+				
                 if(urlstr){
 					var songUrl = decodeUrl(urlstr);
 					var path = dir+songname.trim().replace('\/','_') + '_' + singer + '.mp3';
@@ -126,14 +248,14 @@ function download(songname,requesturl,singer,dir,albumname) {
 							if(songUrl){
 								//console.log('after decode songUrl =[%s] path=[%s]',songUrl,path)
 								downloadsong(songUrl,path,songname,function(response){
-									console.log('歌曲[%s]所属专辑【%s】 下载完毕,存贮在本地地址为[%s]',songname,albumname,path);
+									console.log('歌曲[%s]所属专辑或者排行【%s】 下载完毕,存贮在本地地址为[%s]',songname,albumname,path);
 								});
 								
 							}else{
-								console.log('songUrl 解析之后不存在，歌曲【%s】所属专辑【%s】无法下载,requesturl为[%s]',songname,albumname,requesturl);
+								console.log('songUrl 解析之后不存在，歌曲【%s】所属专辑或者排行【%s】无法下载,requesturl为[%s]',songname,albumname,requesturl);
 							}
 						}else{
-							console.log('歌曲【%s】 所属专辑【%s】已经存在，无需再次下载',path,albumname);
+							console.log('歌曲【%s】 所属专辑或者排行【%s】已经存在，无需再次下载',path,albumname);
 						} 
 					});
                 }else{
@@ -163,7 +285,7 @@ function doit() {
                        var songinfo = JSON.parse(arr[i]);
                        var albumpic = songinfo.picurl;
                        var albumname = songinfo.albumname;
-                       var albumurl = songinfo.songsurl;
+                       var albumurl = songinfo.albumurl;
                        var singer = songinfo.singer;
 					   //console.log('albumpic=[%s]',albumpic)
 					   //console.log('albumname=[%s]',albumname)
@@ -194,12 +316,12 @@ function searchSinger(singer){
 					var $ = cheerio.load(res.body,{decodeEntities:false});
 					var albumslist = $('div.result_main ul.clearfix').eq(0);
 					var albums = albumslist.find("li[data-needpay]");
-					var picurl,albumname,songsurl;
+					var picurl,albumname,albumurl;
 					for(var i in albums){
 						var album = albums.eq(i);
 						picurl = 'http:'+album.find('a.CDcover100 img').attr('src');
 						albumname = album.find('p.name a.song').attr('title');
-						songsurl = 'https:'+album.find('p.name a.song').attr('href');
+						albumurl = 'https:'+album.find('p.name a.song').attr('href');
 						if(album.data('needpay')){
 
 							console.log(albumname+'需要付费');
@@ -209,7 +331,7 @@ function searchSinger(singer){
 									singer:singer,
 									picurl:picurl,
 									albumname:albumname,
-									songsurl:songsurl
+									albumurl:albumurl
 								};
 								console.log(albumobj)
 								albumarr.push(JSON.stringify(albumobj));
