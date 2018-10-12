@@ -19,7 +19,7 @@ function getRanklistUrl() {
 	'https://www.xiami.com/chart/data?c=103&type=3&page=1&limit=100&_=',
 	'https://www.xiami.com/chart/data?c=103&type=4&page=1&limit=100&_=']
 	
-	//var ranklist=['https://www.xiami.com/chart/data?c=103&type=1&page=0&limit=100&_=']
+	var ranklist=['https://www.xiami.com/chart/data?c=103&type=0&page=0&limit=100&_=']
 	for(let i in ranklist){
 		getRanklistSongUrl(i,ranklist[i])
 	}
@@ -86,18 +86,8 @@ function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {
 				var songid=checkedlist.eq(index).attr('value');
                 if(song.text()) {
                     var songname = song.find('p strong>a').text();
-					songname=songname.trim().replace(' ','');
-					songname=songname.trim().replace(' ','');
-					songname=songname.trim().replace('?','_');
-					songname=songname.trim().replace('! ','');
-					songname=songname.trim().replace(':','_');
-					songname=songname.trim().replace(':','_');
-					songname=songname.trim().replace('\\','_');
-					songname=songname.trim().replace('\\','_');
-					songname=songname.trim().replace('(','_');
-					songname=songname.trim().replace(')','_');
-					songname=songname.trim().replace('\/','_');
-					songname=songname.trim().replace('\/','_');
+					songname=songname.trim().replace(/[\\~`:?!/() &*]/g,'_') ;
+
                     var songplayurl = 'https://www.xiami.com/song/'+song.find('p strong>a').attr('href').slice(6);
                     var singer = song.find('p>a').attr('title');
 					if(!singer){
