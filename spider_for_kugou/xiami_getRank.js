@@ -160,10 +160,9 @@ function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {
 						   
 						   var songnamepath = basefolder+songname.trim().replace('\/','_') + '_' + singer + '.mp3';
 						   
+						   
+						   //歌曲标识在就直接下载歌曲，不在的话，可以重新检查一遍是否现在就存在了，更新一下数据库
 						   if(exist){
-							   // bagpipe.push(downloadsongtest,songUrl,songnamepath,songname,function(response){
-								//   console.log('歌曲[%s]下载完毕,存贮在本地地址为[%s]',songname,songnamepath);
-							   //});
 							  // console.log('songname=[%s],songnamepath=[%s],songUrl=[%s]',songname,songnamepath,songUrl)
 							   bagpipe.push(downloadsongs,songUrl,songnamepath,songname,rank)
 								
