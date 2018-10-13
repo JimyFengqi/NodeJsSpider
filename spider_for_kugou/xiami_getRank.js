@@ -19,14 +19,15 @@ function getRanklistUrl() {
 	'https://www.xiami.com/chart/data?c=103&type=3&page=1&limit=100&_=',
 	'https://www.xiami.com/chart/data?c=103&type=4&page=1&limit=100&_=']
 	
-	var ranklist=['https://www.xiami.com/chart/data?c=103&type=0&page=0&limit=100&_=']
+	//var ranklist=['https://www.xiami.com/chart/data?c=103&type=4&page=0&limit=100&_=']
 	for(let i in ranklist){
 		getRanklistSongUrl(i,ranklist[i])
 	}
 }
 	
 function getRanklistSongUrl(i,url){
-	var rankType={'0':'全部排行','1':'华语','2':'欧美' ,'3':'日本','4':'韩国'} 
+	//var rankType={'0':'全部排行','1':'华语','2':'欧美' ,'3':'日本','4':'韩国'} 
+	var rankType={'0':'Alllist','1':'Chinese','2':'EuroAmerica' ,'3':'Japan','4':'Korea'} 
 	//var rankurl='https://www.xiami.com/chart/data?c=103&type=4&page=1&limit=100&_='  // type 后面的数字代表rankType={'0':' 全部排行','1':'华语','2':'欧美' ,'3':'日本','4':'韩国'} 
     
 	var now = new Date();
@@ -93,8 +94,8 @@ function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {
 					if(!singer){
 						singer=song.find('p>a').text().slice(2)
 					}
-					singer=singer.trim().replace('\\','_');
-					singer=singer.trim().replace('\/','_');
+					singer=singer.trim().trim().replace(/[\\~`:?!/() &*]/g,'_') ;
+				
 					
 					var songInfoUrl = getSongUrl(songid);
 					var rank= +index+1    //字符串转为整形数字，可以在字符串前面加上一个加号， 比如： '12'  -> +'12'
@@ -117,22 +118,26 @@ function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {
                 }
             }
 			console.log('ranksongs.length = [%d]',ranksongs.length);
+			//将获取的到数据存贮到数据库中
 			client.lpush(basefoldename,ranksongs,function(err,val){
                 console.log('数据存入basefoldename[%s] 成功  val=[%s ]',basefoldename,val);
             });
+			
+			//获取db的数据长度， 因为是异步获取的，所以数据存贮会有延时
 			var dblength;
 			client.llen(basefoldename,function(err,val){
 				dblength=val;
 				console.log('get db[%s] finished,val=[%s]',basefoldename,val);
 			});
+			console.log(dblength)// 此时数据依然为undefined，因为上一句的异步数据还没有赋值，依然处于初始化的阶段
 			
-			console.log('1dblength = [%s]',dblength);
-			client.ltrim(basefoldename,0,200,function(err,val){
+			//保留钱200 个数据，其他的全部删除
+			client.ltrim(basefoldename,0,199,function(err,val){
 				if(val == 0){
 					console.log('delete other element success val=[%s]',val);
 				}else{
 					console.log('delete other element finished, val=[%s]',val);
-					console.log('dblength = [%s]',dblength);
+					console.log('print in delete ddb ssentense,dblength = [%s]',dblength);
 				}
 				
 			});
@@ -151,10 +156,11 @@ function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {
 						   var singer = songinfo.singer;
 						   var rank = songinfo.rank;
 						   var songUrl = songinfo.songUrl;
+						   var exist = songinfo.exist;
 						   
 						   var songnamepath = basefolder+songname.trim().replace('\/','_') + '_' + singer + '.mp3';
 						   
-						   if(songUrl){
+						   if(exist){
 							   // bagpipe.push(downloadsongtest,songUrl,songnamepath,songname,function(response){
 								//   console.log('歌曲[%s]下载完毕,存贮在本地地址为[%s]',songname,songnamepath);
 							   //});
@@ -162,7 +168,7 @@ function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {
 							   bagpipe.push(downloadsongs,songUrl,songnamepath,songname,rank)
 								
 						   }else{
-								//bagpipe.push(getsongURLsaveInDB,songnamepath,songInfoUrl,rank,index,songinfo,basefoldename);
+								bagpipe.push(getsongURLsaveInDB,songnamepath,songInfoUrl,rank,+index+101,songinfo,basefoldename);
 						   }
 						   
 					   }
@@ -232,7 +238,7 @@ function downloadsong(uri,songnamepath,songname,index,callback){
 				request(uri).pipe(fs.createWriteStream(songnamepath,{autoClose:true})).on('close', callback); 
 			});
 		}else{
-			console.log('歌曲【%s】 所属专辑或者排行【%s】已经存在，无需再次下载',songnamepath,index);
+			//console.log('歌曲【%s】 所属专辑或者排行【%s】已经存在，无需再次下载',songnamepath,index);
 
 		} 
 	});	
@@ -243,11 +249,10 @@ function getsongURLsaveInDB(songnamepath,requesturl,albumname,index,songinfo,dbn
 	var songname = songnamepath.split('/')
 	songname=songname[songname.length-1].split('.')[0]
     if(requesturl){
-		request(requesturl, function (req, res, err) {
-			////if(err){
-			////	console.log('something wrong'+err);
-			////}
-            if (res) {
+		request(requesturl, function (err, res, body) {
+			if(err || res.statusCode != 200){
+				console.log('something wrong'+err);
+			}else{
                 var $ = cheerio.load(res.body,{xmlMode: true});
                 var urlstr = $('location').text();
 				
@@ -257,20 +262,20 @@ function getsongURLsaveInDB(songnamepath,requesturl,albumname,index,songinfo,dbn
 					if(songUrl){
 						//console.log('after decode songUrl =[%s] songnamepath=[%s],songname=[%s]',songUrl,songnamepath,songname)
 						songinfo.songUrl=songUrl;
-						var newsonginfo=JSON.stringify(songinfo)
-								
-						client.lset(dbname,index,newsonginfo,function(err,val){
-							console.log('update num[%s] finished val=[%s] ',index,val);
-						});
+						songinfo.exist=1
 					}else{
-						console.log(songname+'解析之后不存在，无法下载');
+						console.log('songname [%s]解析之后不存在，无法下载,db location=[%d]',songname,index);
+						songinfo.exist=0
 					}
 				}else{
-					console.log('songUrl不存在，歌曲【%s】所属专辑或者排行【%s】无法下载,requesturl为[%s]',songname,albumname,requesturl);
+					console.log('songUrl[%s]不存在，歌曲【%s】所属专辑或者排行【%s】无法下载,db location=[%s],dbname=[%s]',requesturl,songname,albumname,index,dbname);
+					songinfo.exist=0
 				}	
-			}else {
-				console.log(songname+'没有下载权限,或者歌曲被下架');
-            }
+				var newsonginfo=JSON.stringify(songinfo)
+				client.lset(dbname,index,newsonginfo,function(err,val){
+							//console.log('update num[%s] finished val=[%s] ',index,val);
+				});
+			}
 		});
     }
 }
