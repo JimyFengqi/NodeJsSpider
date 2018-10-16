@@ -131,7 +131,7 @@ function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {
 			});
 			console.log(dblength)// 此时数据依然为undefined，因为上一句的异步数据还没有赋值，依然处于初始化的阶段
 			
-			//保留钱200 个数据，其他的全部删除
+			//保留前200个数据，其他的全部删除
 			client.ltrim(basefoldename,0,199,function(err,val){
 				if(val == 0){
 					console.log('delete other element success val=[%s]',val);
