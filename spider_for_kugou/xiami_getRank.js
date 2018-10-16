@@ -141,7 +141,7 @@ function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {
 				}
 				
 			});
-			client.lrange(basefoldename,101,200,function(err,val){
+			client.lrange(basefoldename,100,200,function(err,val){
                 if(err){
 				   console.log(err);
 			   } else{
