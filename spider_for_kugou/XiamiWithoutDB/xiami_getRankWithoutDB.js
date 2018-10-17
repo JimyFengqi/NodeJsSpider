@@ -6,9 +6,6 @@ const cheerio = require('cheerio');
 const fs = require('fs');
 var Bagpipe = require('bagpipe');
 
-const redis = require('redis');
-const client = redis.createClient();
-
 
 getRanklistUrl()
 
@@ -72,7 +69,7 @@ function getRanklistSongUrl(i,url){
 		});
 }
 
-function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {	
+function getRanklistSongUrlInfo(rankurl,basefolder,ranktype) {	
     request(rankurl, function (req, res, err) {
         if (res) {
 			var $ = cheerio.load(res.body);
@@ -100,81 +97,12 @@ function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {
 					var songInfoUrl = getSongUrl(songid);
 					var rank= +index+1    //字符串转为整形数字，可以在字符串前面加上一个加号， 比如： '12'  -> +'12'
 					//console.log('rank=[%d],songname=[%s],songplayurl=[%s],singer=[%s],songid=[%s],songInfoUrl=[%s]',rank,songname,songplayurl,singer,songid,songInfoUrl);
-                    var songobj = {
-						rank:rank,
-                        songname:songname,
-                        songplayurl:songplayurl,
-						songid:songid,
-                        singer:singer,
-						songInfoUrl:songInfoUrl
-                    };
+
+					var songnamepath = basefolder+rank+'_'+songname.trim().replace('\/','_') + '_' + singer + '.mp3';
+					bagpipe.push(getsongURLdownload,songnamepath,songInfoUrl,rank,ranktype);
 					
-					var songnamepath = basefolder+songname.trim().replace('\/','_') + '_' + singer + '.mp3';
-					bagpipe.push(getsongURLsaveInDB,songnamepath,songInfoUrl,rank,index,songobj,basefoldename);
-					
-                    songobj = JSON.stringify(songobj);
-					//console.log(songobj)
-                    ranksongs.push(songobj);
                 }
             }
-			console.log('ranksongs.length = [%d]',ranksongs.length);
-			//将获取的到数据存贮到数据库中
-			client.lpush(basefoldename,ranksongs,function(err,val){
-                console.log('数据存入basefoldename[%s] 成功  val=[%s ]',basefoldename,val);
-            });
-			
-			//获取db的数据长度， 因为是异步获取的，所以数据存贮会有延时
-			var dblength;
-			client.llen(basefoldename,function(err,val){
-				dblength=val;
-				console.log('get db[%s] finished,val=[%s]',basefoldename,val);
-			});
-			console.log(dblength)// 此时数据依然为undefined，因为上一句的异步数据还没有赋值，依然处于初始化的阶段
-			
-			//保留前200个数据，其他的全部删除
-			client.ltrim(basefoldename,0,199,function(err,val){
-				if(val == 0){
-					console.log('delete other element success val=[%s]',val);
-				}else{
-					console.log('delete other element finished, val=[%s]',val);
-					console.log('print in delete ddb ssentense,dblength = [%s]',dblength);
-				}
-				
-			});
-			client.lrange(basefoldename,100,200,function(err,val){
-                if(err){
-				   console.log(err);
-			   } else{
-				   console.log('read data from DB success. data length=[%d]',val.length);
-				   var arr = val;
-				   if(arr) {
-					   	var bagpipe = new Bagpipe(arr.length);
-					   for (var index in arr) {
-						   var songinfo = JSON.parse(arr[index]);
-						   var songname = songinfo.songname;
-						   var songInfoUrl = songinfo.songInfoUrl;
-						   var singer = songinfo.singer;
-						   var rank = songinfo.rank;
-						   var songUrl = songinfo.songUrl;
-						   var exist = songinfo.exist;
-						   
-						   var songnamepath = basefolder+songname.trim().replace('\/','_') + '_' + singer + '.mp3';
-						   
-						   
-						   //歌曲标识在就直接下载歌曲，不在的话，可以重新检查一遍是否现在就存在了，更新一下数据库
-						   if(exist){
-							  // console.log('songname=[%s],songnamepath=[%s],songUrl=[%s]',songname,songnamepath,songUrl)
-							   bagpipe.push(downloadsongs,songUrl,songnamepath,songname,rank)
-								
-						   }else{
-								bagpipe.push(getsongURLsaveInDB,songnamepath,songInfoUrl,rank,+index+101,songinfo,basefoldename);
-						   }
-						   
-					   }
-				   }
-			   }
-            });
-
         }
     });
 };
@@ -218,13 +146,13 @@ function decodeUrl(str) {
     }
 }
 
-function downloadsongs(songUrl,songnamepath,songname,index){
-	downloadsong(songUrl,songnamepath,songname,index,function(response){
-		console.log('歌曲[%s]所属专辑或者排行【%s】 下载完毕,存贮在本地地址为[%s]',songname,index,songnamepath);
+function downloadsongs(songUrl,songnamepath,songname,rank,RankType){
+	downloadsong(songUrl,songnamepath,songname,rank,RankType,function(response){
+		console.log('歌曲[%s]所属榜单【%s】,排行【%s】 下载完毕,存贮在本地地址为[%s]',songname,RankType,rank,songnamepath);
 	});
 }
 
-function downloadsong(uri,songnamepath,songname,index,callback){
+function downloadsong(uri,songnamepath,songname,rank,RankType,callback){
 	fs.access(songnamepath, function (err) {
 		if (err) {
 			request.head(uri, function(err, res, body){ 
@@ -233,18 +161,17 @@ function downloadsong(uri,songnamepath,songname,index,callback){
 					console.log('err uri is [%s] ',uri); 
 					return false; 
 				} 
-				console.log('正在下载歌曲[%s] 到本地',songname);
+				console.log('正在下载歌曲[%s] 所属榜单为【%s】,排行为[%s]到本地',songname,RankType,rank);
 				request(uri).pipe(fs.createWriteStream(songnamepath,{autoClose:true})).on('close', callback); 
 			});
 		}else{
-			//console.log('歌曲【%s】 所属专辑或者排行【%s】已经存在，无需再次下载',songnamepath,index);
+			//console.log('歌曲【%s】 所属专辑或者排行【%s】已经存在，无需再次下载',songnamepath,rank);
 
 		} 
 	});	
 }
 
-function getsongURLsaveInDB(songnamepath,requesturl,albumname,index,songinfo,dbname) {
-    ////var requesturl = getSongUrl(songid);
+function getsongURLdownload(songnamepath,requesturl,rank,RankType) {
 	var songname = songnamepath.split('/')
 	songname=songname[songname.length-1].split('.')[0]
     if(requesturl){
@@ -254,26 +181,16 @@ function getsongURLsaveInDB(songnamepath,requesturl,albumname,index,songinfo,dbn
 			}else{
                 var $ = cheerio.load(res.body,{xmlMode: true});
                 var urlstr = $('location').text();
-				
                 if(urlstr){
 					var songUrl = decodeUrl(urlstr);
-					//var path = dir+songname.trim().replace('\/','_') + '_' + singer + '.mp3';
 					if(songUrl){
-						//console.log('after decode songUrl =[%s] songnamepath=[%s],songname=[%s]',songUrl,songnamepath,songname)
-						songinfo.songUrl=songUrl;
-						songinfo.exist=1
+						downloadsongs(songUrl,songnamepath,songname,rank,RankType);
 					}else{
-						console.log('songname [%s]解析之后不存在，无法下载,db location=[%d]',songname,index);
-						songinfo.exist=0
+						console.log('songname [%s]解析之后不存在，无法下载',songname);
 					}
 				}else{
-					console.log('songUrl[%s]不存在，歌曲【%s】所属专辑或者排行【%s】无法下载,db location=[%s],dbname=[%s]',requesturl,songname,albumname,index,dbname);
-					songinfo.exist=0
+					console.log('songUrl[%s]不存在，歌曲【%s】排行【%s】，所属榜单【%s】无法下载',requesturl,songname,rank,RankType);
 				}	
-				var newsonginfo=JSON.stringify(songinfo)
-				client.lset(dbname,index,newsonginfo,function(err,val){
-							//console.log('update num[%s] finished val=[%s] ',index,val);
-				});
 			}
 		});
     }

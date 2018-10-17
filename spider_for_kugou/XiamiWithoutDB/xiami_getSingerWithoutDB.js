@@ -1,56 +1,111 @@
 /**
- * Created by aidim78 on 2016/11/23.
+ * Created by Jimyfengqi on 2018/10/17.
  */
 const request = require('request');
 const cheerio = require('cheerio');
 const fs = require('fs');
 var Bagpipe = require('bagpipe');
 
-const redis = require('redis');
-const client = redis.createClient();
-var url = 'https://www.xiami.com/album/bCp0VX94065?spm=a1z1s.3521865.23310001.8.By0pxt'
 var headers={
         'User-Agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12) AppleWebKit/602.1.50 (KHTML, like Gecko) Version/10.0 Safari/602.1.50'
     };
 
-	
-	
- request(url,function(req,res,err){
+function doit() {
+    const rl = require('readline').createInterface(process.stdin,process.stdout);
+	var lastsinger;
+    console.log('输入你想要的歌手!');
+    rl.on('line',function(singer){
+		if(singer.startsWith(' ') || singer.length == 0 ){
+			if(lastsinger){
+				singer=lastsinger
+				console.log('本次没有输入歌手，将以上一次输入的【%s】作为查询对象',singer);
+				searchSinger(singer.trim());
+			}else{
+				console.log('本次没有输入歌手，或者以空格开头，请重新输入');
+				return
+			}
+		}else{
+			var singer=singer.trim();
+			searchSinger(singer.trim());
+			lastsinger=singer
+		}
+    });
+}
 
-                if(res) {
-                    var $ = cheerio.load(res.body, {decodeEntities: false});
-                    var songstable = $('#track_list tr[data-needpay]');
-                    if(songstable){
-						console.log('songstable.length = [%d],albumname=[%s]',songstable.length);
-						var bagpipe = new Bagpipe(songstable.length);
-						var bagpipeflag=0;
-                        for(var i in songstable){
-							var song = songstable.eq(i).find('td.song_name a:first-child');
-							var checkelement=songstable.eq(i).find('td.chkbox input:first-child');
-							var checked= checkelement.attr('checked');
-							var newsongid= checkelement.attr('value'); //获取歌曲的ID
+function searchSinger(singer){
+	console.log('singer = [%s]',singer);
+	if(singer.startsWith(' ') || singer.length == 0 ){
+		console.log('本次查询没有输入内容，或者以空格开头，请重新输入正确内容');
+		return
+	}else{
+		const singerurl = 'http://www.xiami.com/search?key='+encodeURIComponent(singer)+'&pos=1';
+		var albumarr = [];
+		request(singerurl,function(error,res,response){
+			if(error || res.statusCode != 200){
+				console.log(error)
+			}else{
+				if(response){            //res.body 和 response是一样的
+					var $ = cheerio.load(response,{decodeEntities:false});
+					var albumslist = $('div.result_main ul.clearfix').eq(0);
+					var albums = albumslist.find("li[data-needpay]");
+					var albumPicurl,albumname,albumurl;
+					
+					var songstable = $('table.track_list tr[data-needpay]');
+					var checkedlistElement=songstable.find('input[checked]');
+					var songbagpipe= new Bagpipe(checkedlistElement.length)
+					console.log('songstable.length[%d],checkedlistElement.length[%d],albums.length=[%d]',songstable.length,checkedlistElement.length,albums.length);
+					var dir =singer+'/'
+					fs.access(dir,function(err){
+                        if(err){
+                            fs.mkdir(dir,function(err){ 
+                            });
+                        }
+                    });
+					
+					for(var index=0; index<songstable.length; index++ ){
+						var song = songstable.eq(index).find('td.song_name a:first-child');
+						//var songsingername = songstable.eq(index).find('td.song_artist a:first-child').text();
+						var songsingername = songstable.eq(index).find('td.song_artist a').text().trim();
+						songsingername=songsingername.trim().replace(/[\\~`:?!/() &*]/g,'_');
+						
+						var num = +index+1
+						var checkelement=songstable.eq(index).find('td.chkbox input:first-child');
+						var checked= checkelement.attr('checked');
+						var songid= checkelement.attr('value'); //获取歌曲的ID
+						var songplayurl = 'https:'+song.attr('href');
+						
+						var songname = song.text();
+						songname=songname.replace(/[\\~`:?!/() &*]/g,'_')  //字符串替换，将其他类型的字符全部替换了
+
+						if(songname){
 							if(checked == 'checked'){
-								if(song.text()){
-									var songid = song.attr('href').slice(6);
-									var songname = song.text();
-									//console.log('songid =[%s],songname=[%s]',songid,songname);
-									//download(songname,songid,singer,dir);
-									//console.log('songname=[%s],songid=[%s]，newsongid=[%s],checked=[%s]',songname,songid,newsongid,checked);
-									var songurl = getSongUrl(newsongid);
-									bagpipeflag=bagpipeflag+1;
-									bagpipe.push(download, songname, songurl,singer,dir,albumname);
-									console.log('bagpipeflag = [%d]/[%d], albumname=[%s],songname[%s]',bagpipeflag,songstable.length,songname);
-									//download(songname,songurl,singer,dir);
-								}
-							}
+								var songInfoUrl = getSongUrl(songid);
 							
+								songbagpipe.push(download, songname, songInfoUrl,singer,dir,num);
+							}
 						}
-                    }
-                }
-            });	
-	
+					}
+				
+					if(albums.length >0){
+						var albumBagpipe=new Bagpipe(albums.length)
 
+						for(var i =0; i<albums.length;i++){
+							var album = albums.eq(i);
+							albumPicurl = 'http:'+album.find('a.CDcover100 img').attr('src');
+							albumname = album.find('p.name a.song').attr('title');
+							albumname=albumname.replace(/[\\~`:?!/() &*]/g,'_');
+							albumurl = 'https:'+album.find('p.name a.song').attr('href');
+							albumBagpipe.push(downloadAlbum,albumPicurl,albumurl,albumname, singer);
 
+						}	
+					}
+
+					
+				}
+			}
+		});
+	}
+}
 
 function decodeUrl(str) {
     var finalresult;
@@ -140,100 +195,10 @@ function download(songname,requesturl,singer,dir,albumname) {
             else {
                 console.log(songname+'没有下载权限');
             }
-
-    })
+    });
     }
 }
-function doit() {
-    const rl = require('readline').createInterface(process.stdin,process.stdout);
-    console.log('输入你想要的歌手!');
-    rl.on('line',function(singer){
-        searchSinger(singer.trim());
-        client.lrange('singer_albums',0,-1,function(err,val){
-           if(err){
-               console.log(err);
-           } else{
-			   console.log('read data from DB success. data length=[%d]',val.length);
-               var arr = val;
-               if(arr) {
-                   for (var i in arr) {
-                       var songinfo = JSON.parse(arr[i]);
-                       var albumpic = songinfo.picurl;
-                       var albumname = songinfo.albumname;
-                       var albumurl = songinfo.albumurl;
-                       var singer = songinfo.singer;
-					   //console.log('albumpic=[%s]',albumpic)
-					   //console.log('albumname=[%s]',albumname)
-					   //console.log('albumurl=[%s]',albumurl)
-                       downloadAlbum(albumpic, albumurl, albumname, singer);
-                   }
-               }
-           }
-        });
 
-    });
-
-}
-function searchSinger(singer){
-	console.log('singer = [%s]',singer);
-	if(singer.startsWith(' ') || singer.length == 0 ){
-		console.log('本次查询没有输入内容，或者以空格开头，请重新输入正确内容');
-		return
-	}else{
-		const singerurl = 'http://www.xiami.com/search?key='+encodeURIComponent(singer)+'&pos=1';
-		var albumarr = [];
-		request(singerurl,function(req,res,err){
-			////if(err){
-			////    console.log('something wrong');
-			////
-			////}else{
-				if(res.body){
-					var $ = cheerio.load(res.body,{decodeEntities:false});
-					var albumslist = $('div.result_main ul.clearfix').eq(0);
-					var albums = albumslist.find("li[data-needpay]");
-					var picurl,albumname,albumurl;
-					for(var i in albums){
-						var album = albums.eq(i);
-						picurl = 'http:'+album.find('a.CDcover100 img').attr('src');
-						albumname = album.find('p.name a.song').attr('title');
-						albumurl = 'https:'+album.find('p.name a.song').attr('href');
-						if(album.data('needpay')){
-
-							console.log(albumname+'需要付费');
-						}else{
-							if(album.data('needpay')=='0'){
-								var albumobj = {
-									singer:singer,
-									picurl:picurl,
-									albumname:albumname,
-									albumurl:albumurl
-								};
-								console.log(albumobj)
-								albumarr.push(JSON.stringify(albumobj));
-							}
-						}
-					}
-					if(albumarr.length > 0) { // 如果albumarr 有内容就进来，没有就进不来，
-						//console.log('albumarr.length = [%d]',albumarr.length);
-						client.lpush("singer_albums", albumarr, function (err) {
-							if (err) {
-								console.log(err);
-							}else{
-								console.log('albumarr insert success')
-							}
-						})
-					}else{
-						console.log('no need to insert anything,no data in albumarr ')
-					}
-				}
-			//}
-		});
-	}
-}
-// function searchSong(songname){
-//     var searchurl = 'http://www.xiami.com/search?key='+encodeURIComponent(songname)+'&pos=1';
-
-// }
 function downloadAlbum(picurl,albumurl,albumname,singer){
     var basedir = './'+singer;
     var dir = basedir+'/'+albumname+'/';
@@ -269,9 +234,10 @@ function downloadAlbum(picurl,albumurl,albumname,singer){
 
 function downloadCoverAndSongs(picurl,albumurl,dir,picname,singer,albumname){
             request(picurl).pipe(fs.createWriteStream(dir+picname));
-            request(albumurl,function(req,res,err){
-
-                if(res) {
+            request(albumurl,function(err,res,body){
+				if(err || res.statusCode!=200 ){
+					console.log(err)
+				}else{
                     var $ = cheerio.load(res.body, {decodeEntities: false});
                     var songstable = $('#track_list tr[data-needpay]');
                     if(songstable){
@@ -287,14 +253,13 @@ function downloadCoverAndSongs(picurl,albumurl,dir,picname,singer,albumname){
 								if(song.text()){
 									var songid = song.attr('href').slice(6);
 									var songname = song.text();
+									var songname = songname.replace(/[\\~`:?!/() &*]/g,'_') ;
 									//console.log('songid =[%s],songname=[%s]',songid,songname);
 									//download(songname,songid,singer,dir);
 									//console.log('songname=[%s],songid=[%s]，newsongid=[%s],checked=[%s]',songname,songid,newsongid,checked);
 									var songurl = getSongUrl(newsongid);
-									bagpipeflag=bagpipeflag+1;
 									bagpipe.push(download, songname, songurl,singer,dir,albumname);
-									console.log('bagpipeflag = [%d]/[%d], albumname=[%s],songname[%s]',bagpipeflag,songstable.length,albumname,songname);
-									//download(songname,songurl,singer,dir);
+
 								}
 							}
 							
@@ -303,25 +268,5 @@ function downloadCoverAndSongs(picurl,albumurl,dir,picname,singer,albumname){
                 }
             });
 }
-function downloadCoverAndSongs_old(picurl,albumurl,dir,picname,singer){
-            request(picurl).pipe(fs.createWriteStream(dir+picname));
-            request(albumurl,function(req,res,err){
 
-                if(res) {
-                    var $ = cheerio.load(res.body, {decodeEntities: false});
-                    var songstable = $('#track_list tr[data-needpay]');
-                    if(songstable){
-                        for(var i in songstable){
-                            var song = songstable.eq(i).find('td.song_name a:first-child');
-                            if(song.text()){
-                                var songid = song.attr('href').slice(6);
-                                var songname = song.text();
-								console.log('songid =[%s],songname=[%s]',songid,songname);
-                                download(songname,songid,singer,dir);
-                            }
-                        }
-                    }
-                }
-            })
-}
-//doit();
+doit();
