@@ -97,7 +97,7 @@ function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {
 					songname=songname.trim().replace(/[\\~`:?!/() &*]/g,'_') ;
 					songplayurl=songinfo.attr('href')
 					songid=songplayurl.split('?')[0].split('/').pop();
-					console.log(songplayurl)
+					//console.log(songplayurl)
 					var rank= +index+1    //字符串转为整形数字，可以在字符串前面加上一个加号， 比如： '12'  -> +'12'
 					var songinfoUrl=getSongUrl(songid)
                     var songobj = {
@@ -112,7 +112,7 @@ function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {
 					bagpipe.push(getsongURLsaveInDB,songname,songinfoUrl,rank,index,songobj,basefoldename);
 					
                     songobj = JSON.stringify(songobj);
-					console.log(songobj)
+					//console.log(songobj)
                     ranksongs.push(songobj);
                 }
             }
@@ -166,10 +166,10 @@ function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {
 						   //歌曲标识在就直接下载歌曲，不在的话，可以重新检查一遍是否现在就存在了，更新一下数据库
 						   if(exist){
 								console.log('songname=[%s],songnamepath=[%s],mp3path=[%s]',songname,songnamepath,mp3path)
-							    bagpipe.push(downloadsongs,mp3path,songnamepath,songname,rank,basefoldename)
+							    //bagpipe.push(downloadsongs,mp3path,songnamepath,songname,rank,basefoldename)
 								
 						   }else{
-								bagpipe.push(getsongURLsaveInDB,songnamepath,songInfoUrl,rank,+index+101,songinfo,basefoldename);
+								bagpipe.push(getsongURLsaveInDB,songnamepath,songInfoUrl,rank,+index+lpushlength,songinfo,basefoldename);
 						   }
 						   
 					   }
@@ -245,10 +245,10 @@ function getsongURLsaveInDB(songname,requesturl,rank,index,songinfo,dbname) {
 					console.log('songUrl[%s]不存在，歌曲【%s】,排行【%s】无法下载,db location=[%s],dbname=[%s]',requesturl,songname,rank,index,dbname);
 					songinfo.exist=0
 				}
-				console.log(songinfo)
+				//console.log(songinfo)
 				var newsonginfo=JSON.stringify(songinfo)
 				client.lset(dbname,index,newsonginfo,function(err,val){
-						console.log('update num[%s] finished val=[%s] ',index,val);
+						//console.log('update num[%s] finished val=[%s] ',index,val);
 				});
 			}
 		});

@@ -202,7 +202,7 @@ function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {
 							    bagpipe.push(downloadsongs,songUrl,songnamepath,songname,rank,basefoldename)
 								
 						   }else{
-								bagpipe.push(getsongURLsaveInDB,songnamepath,songInfoUrl,rank,+index+101,songinfo,basefoldename);
+								bagpipe.push(getsongURLsaveInDB,songnamepath,songInfoUrl,rank,+index+lpushlength,songinfo,basefoldename);
 						   }
 						   
 					   }
