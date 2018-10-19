@@ -14,33 +14,62 @@ host:'127.0.0.1',
 db:1
 });
 console.log('本程序运行两次才能下载歌曲，\n 第一遍将排行榜的歌曲信息记录到数据库中，第二遍，收集歌曲最终的信息，并且下载，同时再次收集当前排行榜情况');
-getRanklistUrl()
+//getRanklistUrl()
+getranktype()
 
+//获取所有榜单
+function getranktype(){
+	RankType=[{'103':'虾米音乐榜'},{'102':'虾米新歌榜'},{'104':'虾米原创榜'},{'201':'Hito中文排行榜'},{'202':'香港劲歌榜'},{'203':'英国UK单曲榜'},{'204':'Billborad单曲榜'},{'205':'Oricon公信单曲榜'},{'206':'M-net综合数据周榜'}]
+	var now = new Date();
+	for(let num in RankType){
+		for(let a in RankType[num]){ 
+			rankurltype=a;
+			ranktypeName=RankType[num][a];	
+			if(num<2){
+				for(let i=0;i<5;i++){
+					url='https://www.xiami.com/chart/data?c='+rankurltype+'&type='+i+'&page=1&limit=100&_='+now.valueOf();
+					console.log(rankurltype,ranktypeName,url); 
+					getRanklistSongUrl(i,url,ranktypeName)
+				}
+			}else{
+				url='https://www.xiami.com/chart/data?c='+rankurltype;
+				console.log(rankurltype,ranktypeName,url); 
+				getRanklistSongUrl(5,url,ranktypeName)
+			}
+		}
+	}
+}
+
+//获取的是虾米音乐榜
 function getRanklistUrl() {
+	var now = new Date();
 	var ranklist=['https://www.xiami.com/chart/data?c=103&type=0&page=1&limit=100&_=',
 	'https://www.xiami.com/chart/data?c=103&type=1&page=1&limit=100&_=',
 	'https://www.xiami.com/chart/data?c=103&type=2&page=1&limit=100&_=',
 	'https://www.xiami.com/chart/data?c=103&type=3&page=1&limit=100&_=',
 	'https://www.xiami.com/chart/data?c=103&type=4&page=1&limit=100&_=']
-	
+
 	//var ranklist=['https://www.xiami.com/chart/data?c=103&type=4&page=0&limit=100&_=']
 	for(let i in ranklist){
-		getRanklistSongUrl(i,ranklist[i])
+		getRanklistSongUrl(i,ranklist[i]+now.valueOf());
 	}
 }
 	
-function getRanklistSongUrl(i,url){
-	//var rankType={'0':'全部排行','1':'华语','2':'欧美' ,'3':'日本','4':'韩国'} 
-	var rankType={'0':'Alllist','1':'Chinese','2':'EuroAmerica' ,'3':'Japan','4':'Korea'} 
-	//var rankurl='https://www.xiami.com/chart/data?c=103&type=4&page=1&limit=100&_='  // type 后面的数字代表rankType={'0':' 全部排行','1':'华语','2':'欧美' ,'3':'日本','4':'韩国'} 
-    
-	var now = new Date();
+function getRanklistSongUrl(i,rankurl,rankname){
+	var rankType={'0':'全部','1':'华语','2':'欧美' ,'3':'日本','4':'韩国'} 
+	//var rankType={'0':'Alllist','1':'Chinese','2':'EuroAmerica' ,'3':'Japan','4':'Korea'} 
+	var basefoldename;
+	
+	if(i == 5){
+		basefoldename=rankname;
+	}else{
+		basefoldename=rankname+'_'+rankType[i]
+	}
 	var rankfolder= './'+'排行榜'
-	var basefoldename=rankType[i]
-		var basefolder=rankfolder+'/'+basefoldename+'/'
-		var rankurl = url+now.valueOf();
-		console.log('basefolder=[%s],rankurl=[%s]',basefolder,rankurl);
-		fs.access(rankfolder, function (err){
+	var basefolder=rankfolder+'/'+basefoldename+'/'
+
+	console.log('basefolder=[%s],rankurl=[%s]',basefolder,rankurl);
+	fs.access(rankfolder, function (err){
 			if(err){
 				console.log('rankfolder=[%s] 不存在，需要创建',rankfolder);
 				fs.mkdir(rankfolder,function(err){
@@ -73,7 +102,7 @@ function getRanklistSongUrl(i,url){
 					}
 				});	
 			}
-		});
+	});
 }
 
 function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {	
@@ -123,8 +152,9 @@ function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {
             }
 			console.log('ranksongs.length = [%d]',ranksongs.length);
 			//将获取的到数据存贮到数据库中
+			var lpushlength=ranksongs.length;
 			client.lpush(basefoldename,ranksongs,function(err,val){
-                console.log('数据存入basefoldename[%s] 成功  val=[%s ]',basefoldename,val);
+                console.log('数据存入basefoldename[%s] 成功  val=[%s]',basefoldename,val);
             });
 			
 			//获取db的数据长度， 因为是异步获取的，所以数据存贮会有延时
@@ -135,17 +165,19 @@ function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {
 			});
 			console.log(dblength)// 此时数据依然为undefined，因为上一句的异步数据还没有赋值，依然处于初始化的阶段
 			
-			//保留前200个数据，其他的全部删除
-			client.ltrim(basefoldename,0,199,function(err,val){
+			//保留两次数据(最新一次和上一次数据)，其他的全部删除
+			//client.ltrim(basefoldename,0,199,function(err,val){
+			client.ltrim(basefoldename,0,lpushlength*2-1,function(err,val){
 				if(val == 0){
 					console.log('delete other element success val=[%s]',val);
 				}else{
 					console.log('delete other element finished, val=[%s]',val);
-					console.log('print in delete ddb ssentense,dblength = [%s]',dblength);
+					console.log('print in delete db sentense,dblength = [%s]',dblength);
 				}
 				
 			});
-			client.lrange(basefoldename,100,200,function(err,val){
+			//client.lrange(basefoldename,100,200,function(err,val){
+			client.lrange(basefoldename,lpushlength,lpushlength*2,function(err,val){
                 if(err){
 				   console.log(err);
 			   } else{
@@ -166,8 +198,8 @@ function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {
 						   					   
 						   //歌曲标识在就直接下载歌曲，不在的话，可以重新检查一遍是否现在就存在了，更新一下数据库
 						   if(exist){
-							  // console.log('songname=[%s],songnamepath=[%s],songUrl=[%s]',songname,songnamepath,songUrl)
-							   bagpipe.push(downloadsongs,songUrl,songnamepath,songname,rank,basefoldename)
+								console.log('songname=[%s],songnamepath=[%s],songUrl=[%s]',songname,songnamepath,songUrl)
+							    bagpipe.push(downloadsongs,songUrl,songnamepath,songname,rank,basefoldename)
 								
 						   }else{
 								bagpipe.push(getsongURLsaveInDB,songnamepath,songInfoUrl,rank,+index+101,songinfo,basefoldename);
