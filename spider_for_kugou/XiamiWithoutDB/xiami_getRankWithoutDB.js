@@ -9,31 +9,60 @@ var Bagpipe = require('bagpipe');
 
 getRanklistUrl()
 
+
+//获取所有榜单
+function getranktype(){
+	RankType=[{'103':'虾米音乐榜'},{'102':'虾米新歌榜'},{'104':'虾米原创榜'},{'201':'Hito中文排行榜'},{'202':'香港劲歌榜'},{'203':'英国UK单曲榜'},{'204':'Billborad单曲榜'},{'205':'Oricon公信单曲榜'},{'206':'M-net综合数据周榜'}]
+	var now = new Date();
+	for(let num in RankType){
+		for(let a in RankType[num]){ 
+			rankurltype=a;
+			ranktypeName=RankType[num][a];	
+			if(num<2){
+				for(let i=0;i<5;i++){
+					url='https://www.xiami.com/chart/data?c='+rankurltype+'&type='+i+'&page=1&limit=100&_='+now.valueOf();
+					console.log(rankurltype,ranktypeName,url); 
+					getRanklistSongUrl(i,url,ranktypeName)
+				}
+			}else{
+				url='https://www.xiami.com/chart/data?c='+rankurltype;
+				console.log(rankurltype,ranktypeName,url); 
+				getRanklistSongUrl(5,url,ranktypeName)
+			}
+		}
+	}
+}
+
+//获取的是虾米音乐榜
 function getRanklistUrl() {
+	var now = new Date();
 	var ranklist=['https://www.xiami.com/chart/data?c=103&type=0&page=1&limit=100&_=',
 	'https://www.xiami.com/chart/data?c=103&type=1&page=1&limit=100&_=',
 	'https://www.xiami.com/chart/data?c=103&type=2&page=1&limit=100&_=',
 	'https://www.xiami.com/chart/data?c=103&type=3&page=1&limit=100&_=',
 	'https://www.xiami.com/chart/data?c=103&type=4&page=1&limit=100&_=']
-	
+
 	//var ranklist=['https://www.xiami.com/chart/data?c=103&type=4&page=0&limit=100&_=']
 	for(let i in ranklist){
-		getRanklistSongUrl(i,ranklist[i])
+		getRanklistSongUrl(i,ranklist[i]+now.valueOf(),'虾米音乐榜');
 	}
 }
 	
-function getRanklistSongUrl(i,url){
-	//var rankType={'0':'全部排行','1':'华语','2':'欧美' ,'3':'日本','4':'韩国'} 
-	var rankType={'0':'Alllist','1':'Chinese','2':'EuroAmerica' ,'3':'Japan','4':'Korea'} 
-	//var rankurl='https://www.xiami.com/chart/data?c=103&type=4&page=1&limit=100&_='  // type 后面的数字代表rankType={'0':' 全部排行','1':'华语','2':'欧美' ,'3':'日本','4':'韩国'} 
-    
-	var now = new Date();
+function getRanklistSongUrl(i,rankurl,rankname){
+	var rankType={'0':'全部','1':'华语','2':'欧美' ,'3':'日本','4':'韩国'} 
+	//var rankType={'0':'Alllist','1':'Chinese','2':'EuroAmerica' ,'3':'Japan','4':'Korea'} 
+	var basefoldename;
+	
+	if(i == 5){
+		basefoldename=rankname;
+	}else{
+		basefoldename=rankname+'_'+rankType[i]
+	}
 	var rankfolder= './'+'排行榜'
-	var basefoldename=rankType[i]
-		var basefolder=rankfolder+'/'+basefoldename+'/'
-		var rankurl = url+now.valueOf();
-		console.log('basefolder=[%s],rankurl=[%s]',basefolder,rankurl);
-		fs.access(rankfolder, function (err){
+	var basefolder=rankfolder+'/'+basefoldename+'/'
+
+	console.log('basefolder=[%s],rankurl=[%s]',basefolder,rankurl);
+	fs.access(rankfolder, function (err){
 			if(err){
 				console.log('rankfolder=[%s] 不存在，需要创建',rankfolder);
 				fs.mkdir(rankfolder,function(err){

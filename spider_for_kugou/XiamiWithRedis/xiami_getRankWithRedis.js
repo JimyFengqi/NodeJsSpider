@@ -51,7 +51,7 @@ function getRanklistUrl() {
 
 	//var ranklist=['https://www.xiami.com/chart/data?c=103&type=4&page=0&limit=100&_=']
 	for(let i in ranklist){
-		getRanklistSongUrl(i,ranklist[i]+now.valueOf());
+		getRanklistSongUrl(i,ranklist[i]+now.valueOf(),'虾米音乐榜');
 	}
 }
 	
