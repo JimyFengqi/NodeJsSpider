@@ -96,7 +96,7 @@ function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {
 				if(songname){
 					songname=songname.trim().replace(/[\\~`:?!/() &*]/g,'_') ;
 					songplayurl=songinfo.attr('href')
-					songid=songplayurl.split('?')[0].split('/').pop();
+					songid=songplayurl.split('?')[0].split('/').pop(); //取得数组中最后一个元素
 					//console.log(songplayurl)
 					var rank= +index+1    //字符串转为整形数字，可以在字符串前面加上一个加号， 比如： '12'  -> +'12'
 					var songinfoUrl=getSongUrl(songid)
@@ -105,7 +105,8 @@ function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {
 						songname:songname,
 						songid:songid,
 						songinfoUrl:songinfoUrl,
-						songplayurl:songplayurl
+						songplayurl:songplayurl,
+						exist:0
                     };
 					
 					//var songnamepath = basefolder+rank+'_'+songname.trim().replace('\/','_') + '_' + singer + '.mp3';
@@ -130,7 +131,7 @@ function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {
 				dblength=val;
 				console.log('get db[%s] finished,val=[%s]',basefoldename,val);
 			});
-			console.log(dblength)// 此时数据依然为undefined，因为上一句的异步数据还没有赋值，依然处于初始化的阶段
+			//console.log(dblength)// 此时数据依然为undefined，因为上一句的异步数据还没有赋值，依然处于初始化的阶段
 			
 			//保留两次数据(最新一次和上一次数据)，其他的全部删除
 			//client.ltrim(basefoldename,0,199,function(err,val){
@@ -165,8 +166,8 @@ function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {
 						   					   
 						   //歌曲标识在就直接下载歌曲，不在的话，可以重新检查一遍是否现在就存在了，更新一下数据库
 						   if(exist){
-								console.log('songname=[%s],songnamepath=[%s],mp3path=[%s]',songname,songnamepath,mp3path)
-							    //bagpipe.push(downloadsongs,mp3path,songnamepath,songname,rank,basefoldename)
+								//console.log('songname=[%s],songnamepath=[%s],mp3path=[%s]',songname,songnamepath,mp3path)
+							    bagpipe.push(downloadsongs,mp3path,songnamepath,songname,rank,basefoldename)
 								
 						   }else{
 								bagpipe.push(getsongURLsaveInDB,songnamepath,songInfoUrl,rank,+index+lpushlength,songinfo,basefoldename);
