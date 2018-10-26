@@ -58,7 +58,7 @@ function getRanklistSongUrl(i,rankurl,rankname){
 	}else{
 		basefoldename=rankname+'_'+rankType[i]
 	}
-	var rankfolder= './'+'排行榜'
+	var rankfolder= './'+'虾米音乐排行榜'
 	var basefolder=rankfolder+'/'+basefoldename+'/'
 
 	console.log('basefolder=[%s],rankurl=[%s]',basefolder,rankurl);
@@ -113,14 +113,14 @@ function getRanklistSongUrlInfo(rankurl,basefolder,ranktype) {
 				var songid=checkedlist.eq(index).attr('value');
                 if(song.text()) {
                     var songname = song.find('p strong>a').text();
-					songname=songname.trim().replace(/[\\~`:?!/() &*]/g,'_') ;
+					songname=songname.trim().replace(/[\\~`:?!/() &*！《》&]/g,'_') ;
 
                     var songplayurl = 'https://www.xiami.com/song/'+song.find('p strong>a').attr('href').slice(6);
                     var singer = song.find('p>a').attr('title');
 					if(!singer){
 						singer=song.find('p>a').text().slice(2)
 					}
-					singer=singer.trim().trim().replace(/[\\~`:?!/() &*]/g,'_') ;
+					singer=singer.trim().trim().replace(/[\\~`:?!/() &*！《》&]/g,'_') ;
 				
 					
 					var songInfoUrl = getSongUrl(songid);

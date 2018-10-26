@@ -18,7 +18,14 @@ class KgDownLoader(object):
                 'filehash': None,
                 'mp3url': None
             } 
+    def get_singer_data(self):
+        mp3_info = self.get_search_data(input('请输入歌名：')) 
+        for x in mp3_info: 
+            mp3info = self.get_mp3_url(x['filehash']) 
+            for i in mp3info: 
+                print(i)
     def get_search_data(self, keys): 
+        print(self.search_url.format(keys))
         search_file = requests.get(self.search_url.format(keys)) 
         search_html = search_file.content.decode().replace(')', '').replace('jQuery191034642999175022426_1489023388639(', '') 
         views = json.loads(search_html) 
@@ -46,8 +53,5 @@ class KgDownLoader(object):
             fp.write(requests.get(real_url).content) 
 if __name__ == '__main__': 
     kg = KgDownLoader() 
-    mp3_info = kg.get_search_data(input('请输入歌名：')) 
-    for x in mp3_info: 
-        mp3info = kg.get_mp3_url(x['filehash']) 
-        for i in mp3info: 
-            print(i)
+    kg.get_singer_data()
+

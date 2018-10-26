@@ -65,7 +65,7 @@ function getRanklistSongUrl(i,rankurl,rankname){
 	}else{
 		basefoldename=rankname+'_'+rankType[i]
 	}
-	var rankfolder= './'+'排行榜'
+	var rankfolder= './'+'虾米音乐排行榜'
 	var basefolder=rankfolder+'/'+basefoldename+'/'
 
 	console.log('basefolder=[%s],rankurl=[%s]',basefolder,rankurl);
@@ -120,14 +120,14 @@ function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {
 				var songid=checkedlist.eq(index).attr('value');
                 if(song.text()) {
                     var songname = song.find('p strong>a').text();
-					songname=songname.trim().replace(/[\\~`:?!/() &*]/g,'_') ;
+					songname=songname.trim().replace(/[\\~`:?!/() &*！《》&]/g,'_');
 
                     var songplayurl = 'https://www.xiami.com/song/'+song.find('p strong>a').attr('href').slice(6);
                     var singer = song.find('p>a').attr('title');
 					if(!singer){
 						singer=song.find('p>a').text().slice(2)
 					}
-					singer=singer.trim().trim().replace(/[\\~`:?!/() &*]/g,'_') ;
+					singer=singer.trim();
 				
 					
 					var songInfoUrl = getSongUrl(songid);
@@ -142,7 +142,7 @@ function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {
 						songInfoUrl:songInfoUrl
                     };
 					
-					var songnamepath = basefolder+rank+'_'+songname.trim().replace('\/','_') + '_' + singer + '.mp3';
+					var songnamepath = basefolder+rank+'_'+songname + '_' + singer.replace(/[\\~`:?!/() &*！《》&]/g,'_') + '.mp3';
 					bagpipe.push(getsongURLsaveInDB,songnamepath,songInfoUrl,rank,index,songobj,basefoldename);
 					
                     songobj = JSON.stringify(songobj);
@@ -194,7 +194,7 @@ function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {
 						   var songUrl = songinfo.songUrl;
 						   var exist = songinfo.exist;
 						   
-						   var songnamepath = basefolder+rank+'_'+songname.trim().replace('\/','_') + '_' + singer + '.mp3';
+						   var songnamepath = basefolder+rank+'_'+songname + '_' + singer.replace(/[\\~`:?!/() &*！《》&]/g,'_')+ '.mp3';
 						   					   
 						   //歌曲标识在就直接下载歌曲，不在的话，可以重新检查一遍是否现在就存在了，更新一下数据库
 						   if(exist){

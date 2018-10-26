@@ -13,7 +13,7 @@ const client = redis.createClient(
 host:'127.0.0.1',
 db:2
 });
-console.log('本程序运行两次才能下载歌曲，\n 第一遍将排行榜的歌曲信息记录到数据库中，第二遍，收集歌曲最终的信息，并且下载，同时再次收集当前排行榜情况');
+
 //getRanklistUrl()
 getranktype()
 
@@ -153,38 +153,6 @@ function getRanklistSongUrlInfo(rankurl,basefolder,basefoldename) {
 				}
 				
 			});
-			//client.lrange(basefoldename,100,200,function(err,val){
-			client.lrange(basefoldename,lpushlength,lpushlength*2,function(err,val){
-                if(err){
-				   console.log(err);
-			   } else{
-				   console.log('read data from DB success. data length=[%d]',val.length);
-				   var arr = val;
-				   if(arr) {
-					   	var bagpipe = new Bagpipe(arr.length);
-					   for (var index in arr) {
-						   var songinfo = JSON.parse(arr[index]);
-						   var songname = songinfo.songname;
-						   var songInfoUrl = songinfo.songInfoUrl;
-						   var singer = songinfo.singer;
-						   var rank = songinfo.rank;
-						   var mp3path = songinfo.mp3path;
-						   var exist = songinfo.exist;
-						   					   
-						   //歌曲标识在就直接下载歌曲，不在的话，可以重新检查一遍是否现在就存在了，更新一下数据库
-						   if(exist){
-								var songnamepath = basefolder+rank+'_'+songname.trim().replace('\/','_') + '_' + singer.replace(/[\\~`:?!！/() &*|{}《》<>&]/g,'_') + '.mp3';
-								//console.log('songname=[%s],songnamepath=[%s],mp3path=[%s]',songname,songnamepath,mp3path)
-							    bagpipe.push(downloadsongs,mp3path,songnamepath,songname,rank,basefoldename)
-								
-						   }else{
-								bagpipe.push(getsongURLsaveInDB,songname,songInfoUrl,rank,+index+101,songinfo,basefoldename);
-						   }
-						   
-					   }
-				   }
-			   }
-            });
 			
         }
     });
@@ -194,30 +162,6 @@ function getSongUrl(songid){
     const urlPrefix = 'http://player.kuwo.cn/webmusic/st/getNewMuiseByRid?rid=';
     return urlPrefix+songid;
 } 
-
-function downloadsongs(songUrl,songnamepath,songname,index,rankType){
-	downloadsong(songUrl,songnamepath,songname,index,rankType,function(response){
-		console.log('歌曲[%s]所属榜单【%s】,排行【%s】 下载完毕,存贮在本地地址为[%s]',songname,rankType,index,songnamepath);
-	});
-}
-
-function downloadsong(uri,songnamepath,songname,index,rankType,callback){
-	fs.access(songnamepath, function (err) {
-		if (err) {
-			request.head(uri, function(err, res, body){ 
-				if (err) { 
-					console.log('err: '+ err); 
-					console.log('err uri is [%s] ',uri); 
-					return false; 
-				} 
-				console.log('正在下载歌曲[%s] 所属榜单【%s】,排行【%s】 到本地',songname,rankType,index);
-				request(uri).pipe(fs.createWriteStream(songnamepath,{autoClose:true})).on('close', callback); 
-			});
-		}else{
-			console.log('歌曲【%s】 所属专辑或者排行【%s】已经存在，无需再次下载',songnamepath,index);
-		} 
-	});	
-}
 
 function getsongURLsaveInDB(songname,requesturl,rank,index,songinfo,dbname) {
     ////var requesturl = getSongUrl(songid);
